@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DiabetesMed AI — 30-Day Readmission Predictor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+<style>
+/* ===================== RESET & VARIABLES ===================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #020b14;
+  --bg2:      #050f1c;
+  --bg3:      #071524;
+  --cyan:     #00f5ff;
+  --cyan2:    #00bfcc;
+  --pink:     #ff2d7e;
+  --pink2:    #cc1f5e;
+  --green:    #00ff9d;
+  --purple:   #9b59ff;
+  --gold:     #ffd700;
+  --text:     #c8e6f5;
+  --text2:    #7ab3cc;
+  --border:   rgba(0,245,255,0.18);
+  --glow-c:   0 0 8px #00f5ff, 0 0 20px rgba(0,245,255,0.4);
+  --glow-p:   0 0 8px #ff2d7e, 0 0 20px rgba(255,45,126,0.4);
+  --glow-g:   0 0 8px #00ff9d, 0 0 20px rgba(0,255,157,0.4);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  overflow-x: hidden;
+}
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--cyan2); border-radius: 3px; }
+
+/* ===================== GRID BACKGROUND ===================== */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ===================== NAVBAR ===================== */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 48px;
+  background: rgba(2,11,20,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  letter-spacing: 2px;
+}
+
+.nav-links { display: flex; gap: 32px; list-style: none; }
+.nav-links a {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text2);
+  text-decoration: none;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transition: color .25s, text-shadow .25s;
+}
+.nav-links a:hover { color: var(--cyan); text-shadow: var(--glow-c); }
+
+/* ===================== HERO ===================== */
+#hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 32px 80px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Animated hospital cross in background */
+.hero-cross {
+  position: absolute;
+  width: 420px; height: 420px;
+  opacity: 0.04;
+  animation: rotateSlow 40s linear infinite;
+}
+.hero-cross::before, .hero-cross::after {
+  content: '';
+  position: absolute;
+  background: var(--cyan);
+  border-radius: 4px;
+}
+.hero-cross::before { width: 60px; height: 420px; left: 50%; transform: translateX(-50%); }
+.hero-cross::after  { width: 420px; height: 60px; top: 50%; transform: translateY(-50%); }
+
+@keyframes rotateSlow { to { transform: rotate(360deg); } }
+
+/* Floating particles */
+.particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: floatUp linear infinite;
+  opacity: 0;
+}
+@keyframes floatUp {
+  0%   { opacity: 0; transform: translateY(0) scale(1); }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.4; }
+  100% { opacity: 0; transform: translateY(-100vh) scale(0.3); }
+}
+
+/* Neon scanline */
+.scanline {
+  position: absolute;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.15;
+  animation: scanMove 5s ease-in-out infinite;
+}
+@keyframes scanMove {
+  0%   { top: 0; }
+  100% { top: 100%; }
+}
+
+.hero-badge {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  padding: 4px 16px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border-radius: 2px;
+  margin-bottom: 28px;
+  box-shadow: var(--glow-p);
+  animation: fadeInDown 0.8s ease both;
+}
+
+.hero-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(2.2rem, 5.5vw, 4.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  animation: fadeInDown 1s ease 0.15s both;
+}
+
+.hero-title .accent-cyan { color: var(--cyan); text-shadow: var(--glow-c); }
+.hero-title .accent-pink { color: var(--pink); text-shadow: var(--glow-p); }
+
+.hero-sub {
+  font-size: 1.15rem;
+  color: var(--text2);
+  max-width: 680px;
+  margin: 0 auto 44px;
+  font-weight: 300;
+  animation: fadeInDown 1s ease 0.3s both;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 52px;
+  animation: fadeInDown 1s ease 0.45s both;
+}
+
+.stat-block { text-align: center; }
+.stat-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  display: block;
+}
+.stat-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text2);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.hero-cta {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  animation: fadeInDown 1s ease 0.6s both;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===================== BUTTONS ===================== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all .25s;
+  border: none;
+}
+
+.btn-cyan {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  box-shadow: inset 0 0 0 0 var(--cyan);
+}
+.btn-cyan:hover {
+  background: rgba(0,245,255,0.12);
+  box-shadow: var(--glow-c);
+  transform: translateY(-2px);
+}
+
+.btn-pink {
+  background: var(--pink);
+  color: #000;
+  font-weight: 700;
+  box-shadow: var(--glow-p);
+}
+.btn-pink:hover {
+  background: var(--pink2);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(255,45,126,0.8);
+}
+
+.btn-green {
+  background: transparent;
+  border: 1px solid var(--green);
+  color: var(--green);
+}
+.btn-green:hover {
+  background: rgba(0,255,157,0.1);
+  box-shadow: var(--glow-g);
+  transform: translateY(-2px);
+}
+
+.btn-purple {
+  background: transparent;
+  border: 1px solid var(--purple);
+  color: var(--purple);
+}
+.btn-purple:hover {
+  background: rgba(155,89,255,0.12);
+  box-shadow: 0 0 20px rgba(155,89,255,0.5);
+  transform: translateY(-2px);
+}
+
+/* ===================== SECTIONS ===================== */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 32px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.section-tag {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--pink);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 700;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+}
+
+.section-divider {
+  width: 80px; height: 2px;
+  background: linear-gradient(90deg, var(--pink), var(--cyan));
+  margin: 16px auto 0;
+  border-radius: 2px;
+}
+
+/* ===================== DIVIDER LINES ===================== */
+.full-divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 0 auto;
+}
+
+/* ===================== OVERVIEW / PHASES ===================== */
+#overview { padding-top: 120px; }
+
+.overview-intro {
+  max-width: 800px;
+  margin: 0 auto 72px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 1.05rem;
+  line-height: 1.8;
+}
+
+.phases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.phase-card {
+  background: rgba(0,245,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .3s, transform .3s, box-shadow .3s;
+  cursor: default;
+}
+
+.phase-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0,245,255,0.05), transparent);
+  opacity: 0;
+  transition: opacity .3s;
+}
+
+.phase-card:hover {
+  border-color: var(--cyan);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 30px rgba(0,245,255,0.12);
+}
+.phase-card:hover::before { opacity: 1; }
+
+.phase-num {
+  font-family: 'Orbitron', monospace;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: rgba(0,245,255,0.12);
+  position: absolute;
+  top: 12px; right: 20px;
+  line-height: 1;
+}
+
+.phase-icon {
+  font-size: 2rem;
+  margin-bottom: 14px;
+  display: block;
+}
+
+.phase-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.9rem;
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+.phase-desc {
+  font-size: 0.92rem;
+  color: var(--text2);
+  line-height: 1.7;
+}
+
+/* ===================== PROBLEM STATEMENT ===================== */
+#problem {
+  background: rgba(255,45,126,0.03);
+  border-top: 1px solid rgba(255,45,126,0.15);
+  border-bottom: 1px solid rgba(255,45,126,0.15);
+  max-width: 100%;
+  padding: 100px 32px;
+}
+
+#problem .inner { max-width: 1180px; margin: 0 auto; }
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+  margin-top: 0;
+}
+
+@media (max-width: 768px) {
+  .problem-grid { grid-template-columns: 1fr; }
+  nav { padding: 14px 20px; }
+  .nav-links { gap: 16px; }
+  .hero-stats { gap: 28px; }
+  .problem-grid, .findings-grid { grid-template-columns: 1fr; }
+}
+
+.problem-text p {
+  color: var(--text2);
+  margin-bottom: 18px;
+  line-height: 1.8;
+}
+
+.challenge-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.challenge-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: rgba(255,45,126,0.06);
+  border: 1px solid rgba(255,45,126,0.2);
+  border-radius: 6px;
+  padding: 14px 18px;
+}
+.challenge-icon { font-size: 1.4rem; flex-shrink: 0; }
+.challenge-text { font-size: 0.92rem; color: var(--text2); line-height: 1.6; }
+.challenge-title { color: var(--pink); font-weight: 600; font-size: 0.95rem; display: block; margin-bottom: 3px; }
+
+/* ===================== DATASET STATS ===================== */
+.dataset-visual {
+  background: rgba(0,245,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+}
+
+.dataset-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.data-stats { display: flex; flex-direction: column; gap: 16px; }
+
+.data-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,245,255,0.08);
+  padding-bottom: 12px;
+}
+.data-stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.data-stat-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+.data-stat-val {
+  font-family: 'Orbitron', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--green);
+  text-shadow: var(--glow-g);
+}
+
+/* Class imbalance bar */
+.imbalance-bar {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0,245,255,0.08);
+}
+.imbalance-label { font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; color: var(--text2); margin-bottom: 8px; }
+.bar-track {
+  height: 26px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  border: 1px solid var(--border);
+}
+.bar-neg {
+  background: linear-gradient(90deg, rgba(0,245,255,0.3), rgba(0,245,255,0.15));
+  width: 91.2%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--cyan);
+}
+.bar-pos {
+  background: linear-gradient(90deg, rgba(255,45,126,0.3), rgba(255,45,126,0.5));
+  width: 8.8%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--pink);
+}
+.bar-legend { display: flex; gap: 20px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+/* ===================== KEY FINDINGS ===================== */
+.findings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+.finding-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: all .3s;
+}
+
+.finding-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--green);
+  box-shadow: 0 8px 30px rgba(0,255,157,0.1);
+}
+
+.finding-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+}
+
+.finding-icon { font-size: 2rem; margin-bottom: 14px; display: block; }
+.finding-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  color: var(--green);
+  font-weight: 700;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+}
+.finding-text { font-size: 0.92rem; color: var(--text2); line-height: 1.7; }
+.finding-metric {
+  margin-top: 16px;
+  font-family: 'Orbitron', monospace;
+  font-size: 1.6rem;
+  color: var(--cyan);
+  text-shadow: var(--glow-c);
+  display: block;
+}
+.finding-metric-label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; color: var(--text2); letter-spacing: 2px; }
+
+/* ===================== MODEL COMPARISON TABLE (interactive) ===================== */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg2);
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+thead { background: rgba(0,245,255,0.08); }
+thead th {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  color: var(--cyan);
+  text-transform: uppercase;
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+  border-bottom: 1px solid rgba(0,245,255,0.05);
+  transition: background .2s;
+}
+tbody tr:hover { background: rgba(0,245,255,0.05); }
+tbody tr.best-row { background: rgba(0,255,157,0.05); }
+tbody tr.best-row td:first-child { color: var(--green); font-weight: 600; }
+
+td { padding: 14px 20px; color: var(--text2); }
+td.highlight { color: var(--green); font-weight: 600; font-family: 'Orbitron', monospace; }
+
+/* Mini bar in table */
+.mini-bar { display: flex; align-items: center; gap: 8px; }
+.mini-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.mini-bar-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+
+/* ===================== VISUALIZATIONS ===================== */
+#visualizations { padding-top: 0; }
+
+.viz-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.viz-tab {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  color: var(--text2);
+  background: transparent;
+  transition: all .2s;
+  position: relative;
+  top: 1px;
+}
+.viz-tab.active {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: rgba(0,245,255,0.06);
+}
+.viz-tab:hover:not(.active) { color: var(--text); border-color: rgba(0,245,255,0.3); }
+
+.viz-panel { display: none; }
+.viz-panel.active { display: block; }
+
+.viz-image-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: center;
+  padding: 8px;
+}
+.viz-image-wrap img {
+  max-width: 100%;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto;
+}
+
+.viz-caption {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+  letter-spacing: 1.5px;
+  text-align: center;
+  padding: 12px;
+}
+
+.viz-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media(max-width:720px) { .viz-two-col { grid-template-columns: 1fr; } }
+
+/* ===================== INTERACTIVE METRIC EXPLORER ===================== */
+.metric-explorer {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 36px;
+  margin-top: 48px;
+}
+
+.metric-explorer-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  color: var(--cyan);
+  margin-bottom: 6px;
+  text-shadow: var(--glow-c);
+}
+.metric-explorer-sub { font-size: 0.88rem; color: var(--text2); margin-bottom: 32px; }
+
+.model-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
+.model-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: transparent;
+  transition: all .2s;
+  text-transform: uppercase;
+}
+.model-btn.active {
+  border-color: var(--pink);
+  color: var(--pink);
+  background: rgba(255,45,126,0.08);
+  box-shadow: var(--glow-p);
+}
+.model-btn:hover:not(.active) { border-color: rgba(0,245,255,0.4); color: var(--text); }
+
+.metric-bars { display: flex; flex-direction: column; gap: 20px; }
+.metric-row { }
+.metric-row-header { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.metric-name { font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+.metric-value { font-family: 'Orbitron', monospace; font-size: 0.9rem; color: var(--cyan); }
+.metric-track { height: 10px; background: rgba(255,255,255,0.06); border-radius: 5px; overflow: hidden; }
+.metric-fill { height: 100%; border-radius: 5px; transition: width .6s cubic-bezier(.34,1.56,.64,1); }
+
+/* ===================== TEAM ===================== */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+}
+
+.team-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px 24px;
+  text-align: center;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  top: -60px; left: 50%;
+  transform: translateX(-50%);
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(0,245,255,0.08), transparent 70%);
+  transition: opacity .3s;
+  opacity: 0;
+}
+.team-card:hover::before { opacity: 1; }
+
+.team-card:hover {
+  border-color: var(--cyan);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 40px rgba(0,245,255,0.1);
+}
+
+.team-avatar {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  margin: 0 auto 18px;
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 20px rgba(0,245,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+  background: linear-gradient(135deg, #0a2035, #071524);
+  position: relative;
+  overflow: hidden;
+}
+
+.team-avatar svg {
+  width: 100%; height: 100%;
+}
+
+.team-name {
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 4px;
+  text-shadow: var(--glow-c);
+}
+
+.team-role {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--pink);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.team-bio { font-size: 0.88rem; color: var(--text2); line-height: 1.7; margin-bottom: 20px; }
+
+/* ===================== LINKS SECTION ===================== */
+#links { padding-bottom: 60px; }
+
+.links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.link-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px 24px;
+  text-align: center;
+  text-decoration: none;
+  transition: all .3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.link-card-icon { font-size: 2.2rem; }
+.link-card-title {
+  font-family: 'Orbitron', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.link-card-sub { font-size: 0.78rem; color: var(--text2); }
+
+.link-card.github:hover { border-color: var(--green); box-shadow: 0 4px 20px rgba(0,255,157,0.15); }
+.link-card.report:hover { border-color: var(--cyan); box-shadow: 0 4px 20px rgba(0,245,255,0.15); }
+.link-card.slides:hover { border-color: var(--purple); box-shadow: 0 4px 20px rgba(155,89,255,0.15); }
+.link-card.demo:hover   { border-color: var(--pink); box-shadow: 0 4px 20px rgba(255,45,126,0.15); }
+
+/* ===================== FOOTER ===================== */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 40px 32px;
+  border-top: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text2);
+  letter-spacing: 1.5px;
+}
+
+footer span { color: var(--cyan); }
+
+/* ===================== SCROLL ANIMATIONS ===================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===================== NEON PULSE RINGS (hero) ===================== */
+.pulse-rings {
+  position: absolute;
+  width: 600px; height: 600px;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.pulse-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(0,245,255,0.08);
+  animation: pulsate 4s ease-out infinite;
+}
+.pulse-ring:nth-child(1) { inset: 0; animation-delay: 0s; }
+.pulse-ring:nth-child(2) { inset: 50px; animation-delay: 0.8s; }
+.pulse-ring:nth-child(3) { inset: 100px; animation-delay: 1.6s; }
+.pulse-ring:nth-child(4) { inset: 150px; animation-delay: 2.4s; }
+
+@keyframes pulsate {
+  0%   { opacity: 0; transform: scale(0.9); }
+  30%  { opacity: 0.6; }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+/* Pipeline visual */
+.pipeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 48px 0;
+  position: relative;
+}
+
+.pipe-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.pipe-node {
+  width: 54px; height: 54px;
+  border-radius: 50%;
+  border: 2px solid var(--cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Orbitron', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+  background: rgba(0,245,255,0.06);
+  box-shadow: var(--glow-c);
+  transition: all .3s;
+  cursor: default;
+}
+.pipe-step:hover .pipe-node {
+  background: rgba(0,245,255,0.15);
+  transform: scale(1.1);
+}
+
+.pipe-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text2);
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  max-width: 80px;
+}
+
+.pipe-arrow {
+  width: 40px; height: 2px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  margin: 0 4px;
+  position: relative;
+  top: -14px;
+}
+.pipe-arrow::after {
+  content: '▶';
+  position: absolute;
+  right: -2px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--cyan);
+  font-size: 0.6rem;
+}
+
+@media(max-width:640px){
+  .pipe-arrow { display: none; }
+  .pipeline { gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAVBAR ===================== -->
+<nav>
+  <div class="nav-logo">⬡ DiabetesMed AI</div>
+  <ul class="nav-links">
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#findings">Findings</a></li>
+    <li><a href="#visualizations">Viz</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a href="#links">Links</a></li>
+  </ul>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section id="hero">
+  <div class="particles" id="particles"></div>
+  <div class="scanline"></div>
+  <div class="pulse-rings">
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+    <div class="pulse-ring"></div>
+  </div>
+  <div class="hero-cross"></div>
+
+  <div class="hero-badge">⚕ Machine Learning · Healthcare AI · Effat University</div>
+
+  <h1 class="hero-title">
+    Predicting <span class="accent-cyan">30-Day</span><br/>
+    Hospital <span class="accent-pink">Readmission</span><br/>
+    in Diabetic Patients
+  </h1>
+
+  <p class="hero-sub">
+    A comprehensive five-phase machine learning pipeline applied to the UCI Diabetes 130-US Hospitals dataset,
+    leveraging XGBoost, SMOTE oversampling, and threshold optimization to identify at-risk patients before discharge.
+  </p>
+
+  <div class="hero-stats">
+    <div class="stat-block">
+      <span class="stat-num">71K+</span>
+      <span class="stat-label">Patient Records</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-num">6</span>
+      <span class="stat-label">ML Models Tested</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-num">0.72</span>
+      <span class="stat-label">AUC-ROC Score</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-num">0.38</span>
+      <span class="stat-label">Best F1-Score</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-num">5</span>
+      <span class="stat-label">Pipeline Phases</span>
+    </div>
+  </div>
+
+  <div class="hero-cta">
+    <a href="#overview" class="btn btn-cyan">▶ Explore Project</a>
+    <a href="https://github.com/najeyahwaseem05/CS4082_Machine_Learning_Project.git" target="_blank" class="btn btn-pink">⌥ GitHub Repo</a>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ===================== OVERVIEW ===================== -->
+<section id="overview">
+  <div class="section-header reveal">
+    <span class="section-tag">// Phase Architecture</span>
+    <h2 class="section-title">Project Overview</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <p class="overview-intro reveal">
+    Diabetes mellitus affects hundreds of millions globally. Hospital 30-day readmission rates are a critical quality indicator —
+    the US Centers for Medicare &amp; Medicaid Services financially penalizes hospitals with excessive rates.
+    Our project builds a rigorous, end-to-end ML pipeline to predict which diabetic patients are most at risk of readmission,
+    enabling targeted post-discharge interventions.
+  </p>
+
+  <!-- Pipeline diagram -->
+  <div class="pipeline reveal">
+    <div class="pipe-step">
+      <div class="pipe-node">01</div>
+      <div class="pipe-label">Data Load &amp; Inspect</div>
+    </div>
+    <div class="pipe-arrow"></div>
+    <div class="pipe-step">
+      <div class="pipe-node">02</div>
+      <div class="pipe-label">Preprocessing &amp; EDA</div>
+    </div>
+    <div class="pipe-arrow"></div>
+    <div class="pipe-step">
+      <div class="pipe-node">03</div>
+      <div class="pipe-label">Baseline Models</div>
+    </div>
+    <div class="pipe-arrow"></div>
+    <div class="pipe-step">
+      <div class="pipe-node">04</div>
+      <div class="pipe-label">Tuning &amp; Optimization</div>
+    </div>
+    <div class="pipe-arrow"></div>
+    <div class="pipe-step">
+      <div class="pipe-node">05</div>
+      <div class="pipe-label">Evaluation &amp; Explainability</div>
+    </div>
+  </div>
+
+  <div class="phases-grid">
+    <div class="phase-card reveal">
+      <span class="phase-num">01</span>
+      <span class="phase-icon">🔬</span>
+      <div class="phase-title">Data Loading &amp; Inspection</div>
+      <div class="phase-desc">Loaded the UCI Diabetes 130-US Hospitals dataset (101,766 encounters, 1999–2008). Identified missing values encoded as '?', inspected 49 features spanning demographics, clinical measurements, medication indicators, and ICD-9 diagnosis codes.</div>
+    </div>
+    <div class="phase-card reveal">
+      <span class="phase-num">02</span>
+      <span class="phase-icon">⚙️</span>
+      <div class="phase-title">Preprocessing &amp; EDA</div>
+      <div class="phase-desc">Dropped high-missingness columns (weight ≈97%, medical_specialty ≈49%). Deduplicated to 71,515 unique patient records by keeping first encounters. Applied SMOTE exclusively to training data. One-hot encoded categoricals. Explored distributions, outliers, correlations.</div>
+    </div>
+    <div class="phase-card reveal">
+      <span class="phase-num">03</span>
+      <span class="phase-icon">🤖</span>
+      <div class="phase-title">Baseline Model Training</div>
+      <div class="phase-desc">Trained and compared 6 classifiers: Logistic Regression, Decision Tree, Random Forest, Naïve Bayes, KNN, and XGBoost on SMOTE-augmented training data. Evaluated on original validation set using F1, Recall, AUC-ROC, and Balanced Accuracy.</div>
+    </div>
+    <div class="phase-card reveal">
+      <span class="phase-num">04</span>
+      <span class="phase-icon">🎯</span>
+      <div class="phase-title">Model Improvement</div>
+      <div class="phase-desc">Applied RandomizedSearchCV hyperparameter tuning for XGBoost and Random Forest. Key: calibrated scale_pos_weight ≈10.36 to class imbalance ratio. Optimized decision threshold via precision-recall curve analysis. Compared Voting and Stacking ensemble classifiers.</div>
+    </div>
+    <div class="phase-card reveal">
+      <span class="phase-num">05</span>
+      <span class="phase-icon">📊</span>
+      <div class="phase-title">Held-Out Evaluation &amp; Interpretability</div>
+      <div class="phase-desc">Final evaluation on untouched test set (15%). Analyzed feature importance across 4 methods: SelectKBest, RF Importance, RFE, and PCA. Top predictors: num_medications, number_diagnoses, time_in_hospital. Documented limitations and future directions.</div>
+    </div>
+    <div class="phase-card reveal" style="border-color:rgba(255,45,126,0.3);">
+      <span class="phase-num" style="color:rgba(255,45,126,0.12);">⚕</span>
+      <span class="phase-icon">📚</span>
+      <div class="phase-title" style="color:var(--pink);">Literature Review</div>
+      <div class="phase-desc">Reviewed 4 key studies on diabetes readmission prediction. Identified gaps: most models rely on retrospective EHR data, sensitive to missing values and class imbalance, limited generalizability. Motivated our rigorous preprocessing pipeline and evaluation approach.</div>
+    </div>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ===================== PROBLEM STATEMENT ===================== -->
+<div id="problem">
+  <div class="inner">
+    <div class="section-header reveal">
+      <span class="section-tag">// Problem &amp; Dataset</span>
+      <h2 class="section-title">The Challenge</h2>
+      <div class="section-divider"></div>
+    </div>
+
+    <div class="problem-grid">
+      <div class="problem-text reveal">
+        <p>Predicting 30-day readmission in diabetic patients is clinically critical but technically hard. Standard accuracy metrics are deceptive on imbalanced data — a model predicting "never readmitted" still achieves <strong style="color:var(--pink);">&gt;91% accuracy</strong> while failing entirely on high-risk patients.</p>
+        <p>Our pipeline specifically addresses four core challenges that make this a difficult real-world ML problem:</p>
+        <ul class="challenge-list">
+          <li class="challenge-item">
+            <span class="challenge-icon">⚖️</span>
+            <div class="challenge-text">
+              <span class="challenge-title">Severe Class Imbalance</span>
+              91.4% non-readmitted vs 8.6% readmitted. Accuracy is useless — F1 and recall are primary metrics.
+            </div>
+          </li>
+          <li class="challenge-item">
+            <span class="challenge-icon">🌐</span>
+            <div class="challenge-text">
+              <span class="challenge-title">High-Dimensional Heterogeneous Features</span>
+              49 features mixing numerical, categorical, sparse drug indicators, and ICD-9 codes.
+            </div>
+          </li>
+          <li class="challenge-item">
+            <span class="challenge-icon">🔇</span>
+            <div class="challenge-text">
+              <span class="challenge-title">Noisy, Incomplete Clinical Data</span>
+              Real-world EHR data with missing values, coding inconsistencies, and duplicate encounters.
+            </div>
+          </li>
+          <li class="challenge-item">
+            <span class="challenge-icon">🔄</span>
+            <div class="challenge-text">
+              <span class="challenge-title">Data Leakage Risk</span>
+              Repeated patient encounters require careful first-encounter deduplication to prevent leakage.
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="dataset-visual reveal">
+        <div class="dataset-title">// UCI Diabetes 130-US Dataset</div>
+        <div class="data-stats">
+          <div class="data-stat-row">
+            <span class="data-stat-label">ORIGINAL ENCOUNTERS</span>
+            <span class="data-stat-val">101,766</span>
+          </div>
+          <div class="data-stat-row">
+            <span class="data-stat-label">AFTER DEDUPLICATION</span>
+            <span class="data-stat-val">71,515</span>
+          </div>
+          <div class="data-stat-row">
+            <span class="data-stat-label">FEATURES</span>
+            <span class="data-stat-val">49</span>
+          </div>
+          <div class="data-stat-row">
+            <span class="data-stat-label">US HOSPITALS</span>
+            <span class="data-stat-val">130</span>
+          </div>
+          <div class="data-stat-row">
+            <span class="data-stat-label">YEAR RANGE</span>
+            <span class="data-stat-val">1999–2008</span>
+          </div>
+          <div class="data-stat-row">
+            <span class="data-stat-label">TRAIN / VAL / TEST</span>
+            <span class="data-stat-val">70 / 15 / 15%</span>
+          </div>
+        </div>
+        <div class="imbalance-bar">
+          <div class="imbalance-label">// CLASS DISTRIBUTION</div>
+          <div class="bar-track">
+            <div class="bar-neg">91.2% Not Readmitted</div>
+            <div class="bar-pos">8.8%</div>
+          </div>
+          <div class="bar-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--cyan)"></div>Not Readmitted (0)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--pink)"></div>Readmitted within 30 days (1)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="full-divider"></div>
+
+<!-- ===================== KEY FINDINGS ===================== -->
+<section id="findings">
+  <div class="section-header reveal">
+    <span class="section-tag">// Results &amp; Conclusions</span>
+    <h2 class="section-title">Key Findings</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="findings-grid">
+    <div class="finding-card reveal">
+      <span class="finding-icon">🏆</span>
+      <div class="finding-title">XGBoost Wins</div>
+      <div class="finding-text">Threshold-tuned XGBoost outperformed all 6 baseline classifiers on every minority-class metric. Calibrating <em>scale_pos_weight</em> to the class imbalance ratio (≈10.36) was critical.</div>
+      <span class="finding-metric">F1: 0.38</span>
+      <span class="finding-metric-label">Best model · Test set</span>
+    </div>
+    <div class="finding-card reveal">
+      <span class="finding-icon">📉</span>
+      <div class="finding-title">Accuracy is Misleading</div>
+      <div class="finding-text">Random Forest achieved 90% accuracy yet only 0.18 recall — missing over 80% of true readmissions. High accuracy on imbalanced data is not a meaningful metric.</div>
+      <span class="finding-metric">RF: 90% Acc</span>
+      <span class="finding-metric-label">Only 0.18 Recall</span>
+    </div>
+    <div class="finding-card reveal">
+      <span class="finding-icon">⚡</span>
+      <div class="finding-title">Threshold Tuning Helps</div>
+      <div class="finding-text">Moving from the default 0.5 threshold to a precision-recall optimized threshold improved F1 by 3–5 percentage points with a meaningful recall boost — vital for clinical use.</div>
+      <span class="finding-metric">+3–5 pts</span>
+      <span class="finding-metric-label">F1 improvement via tuning</span>
+    </div>
+    <div class="finding-card reveal">
+      <span class="finding-icon">🔑</span>
+      <div class="finding-title">Top Predictive Features</div>
+      <div class="finding-text">Consistent across all 4 feature selection methods: <em>num_medications</em>, <em>number_diagnoses</em>, <em>time_in_hospital</em>, <em>num_lab_procedures</em>, and insulin/metformin change flags.</div>
+      <span class="finding-metric">4 Methods</span>
+      <span class="finding-metric-label">Consistent feature ranking</span>
+    </div>
+    <div class="finding-card reveal">
+      <span class="finding-icon">🧬</span>
+      <div class="finding-title">SMOTE Boosts Recall</div>
+      <div class="finding-text">Applying SMOTE <em>only</em> to the training set (≈91K samples post-oversampling) substantially improved recall across all models without introducing data leakage into validation or test.</div>
+      <span class="finding-metric">~91K</span>
+      <span class="finding-metric-label">Training samples after SMOTE</span>
+    </div>
+    <div class="finding-card reveal">
+      <span class="finding-icon">🎯</span>
+      <div class="finding-title">AUC-ROC: 0.72</div>
+      <div class="finding-text">The final XGBoost model achieves AUC-ROC of 0.72 and balanced accuracy of 0.68, confirming it learns genuine readmission signals (MCC = 0.28) beyond majority-class dominance.</div>
+      <span class="finding-metric">AUC: 0.72</span>
+      <span class="finding-metric-label">Final held-out test set</span>
+    </div>
+  </div>
+
+  <!-- Baseline comparison table -->
+  <div style="margin-top: 64px;">
+    <div class="section-header reveal" style="margin-bottom:28px;">
+      <span class="section-tag">// Model Comparison</span>
+      <h3 style="font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--text);margin-top:8px;">Baseline Validation Performance</h3>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Accuracy</th>
+            <th>Recall (Min)</th>
+            <th>F1 (Min)</th>
+            <th>AUC-ROC</th>
+            <th>F1 Visual</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Logistic Regression</td>
+            <td>0.74</td>
+            <td>0.61</td>
+            <td>0.32</td>
+            <td>0.72</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:84%;background:linear-gradient(90deg,var(--cyan),var(--cyan2))"></div></div>
+                <span style="font-size:0.75rem;color:var(--text2);">0.32</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Decision Tree</td>
+            <td>0.82</td>
+            <td>0.35</td>
+            <td>0.29</td>
+            <td>0.64</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:76%;background:linear-gradient(90deg,var(--purple),#7b3fcc)"></div></div>
+                <span style="font-size:0.75rem;color:var(--text2);">0.29</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Naïve Bayes</td>
+            <td>0.48</td>
+            <td>0.87</td>
+            <td>0.25</td>
+            <td>0.68</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:66%;background:linear-gradient(90deg,var(--pink),var(--pink2))"></div></div>
+                <span style="font-size:0.75rem;color:var(--text2);">0.25</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>K-Nearest Neighbors</td>
+            <td>0.87</td>
+            <td>0.22</td>
+            <td>0.26</td>
+            <td>0.65</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:68%;background:linear-gradient(90deg,#f5a623,#e8901e)"></div></div>
+                <span style="font-size:0.75rem;color:var(--text2);">0.26</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Random Forest</td>
+            <td>0.90</td>
+            <td>0.18</td>
+            <td>0.26</td>
+            <td>0.73</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:68%;background:linear-gradient(90deg,#f5a623,#e8901e)"></div></div>
+                <span style="font-size:0.75rem;color:var(--text2);">0.26</span>
+              </div>
+            </td>
+          </tr>
+          <tr class="best-row">
+            <td>⭐ XGBoost (Baseline)</td>
+            <td>0.78</td>
+            <td>0.58</td>
+            <td class="highlight">0.36</td>
+            <td class="highlight">0.74</td>
+            <td>
+              <div class="mini-bar">
+                <div class="mini-bar-track"><div class="mini-bar-fill" style="width:95%;background:linear-gradient(90deg,var(--green),#00cc7a)"></div></div>
+                <span style="font-size:0.75rem;color:var(--green);">0.36</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Final test results -->
+  <div style="margin-top: 40px;">
+    <div class="section-header reveal" style="margin-bottom:28px;">
+      <span class="section-tag">// Final Evaluation</span>
+      <h3 style="font-family:'Orbitron',monospace;font-size:1.2rem;color:var(--text);margin-top:8px;">Held-Out Test Set Performance</h3>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Balanced Acc</th>
+            <th>Recall</th>
+            <th>F1</th>
+            <th>MCC</th>
+            <th>AUC-ROC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baseline Random Forest</td>
+            <td>0.57</td>
+            <td>0.18</td>
+            <td>0.24</td>
+            <td>0.16</td>
+            <td>0.71</td>
+          </tr>
+          <tr>
+            <td>Adversarial Random Forest</td>
+            <td>0.62</td>
+            <td>0.35</td>
+            <td>0.30</td>
+            <td>0.22</td>
+            <td>0.71</td>
+          </tr>
+          <tr class="best-row">
+            <td>⭐ XGBoost (Tuned + Threshold)</td>
+            <td class="highlight">0.68</td>
+            <td class="highlight">0.58</td>
+            <td class="highlight">0.38</td>
+            <td class="highlight">0.28</td>
+            <td class="highlight">0.72</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Interactive metric explorer -->
+  <div class="metric-explorer reveal">
+    <div class="metric-explorer-title">// Interactive Model Explorer</div>
+    <p class="metric-explorer-sub">Select a model to visualize its performance metrics on the validation set</p>
+
+    <div class="model-selector">
+      <button class="model-btn active" onclick="showModel('lr')">Logistic Reg.</button>
+      <button class="model-btn" onclick="showModel('dt')">Decision Tree</button>
+      <button class="model-btn" onclick="showModel('nb')">Naïve Bayes</button>
+      <button class="model-btn" onclick="showModel('knn')">KNN</button>
+      <button class="model-btn" onclick="showModel('rf')">Random Forest</button>
+      <button class="model-btn" onclick="showModel('xgb')">XGBoost ⭐</button>
+    </div>
+
+    <div class="metric-bars" id="metricBars">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ===================== VISUALIZATIONS ===================== -->
+<section id="visualizations">
+  <div class="section-header reveal">
+    <span class="section-tag">// Charts &amp; Plots</span>
+    <h2 class="section-title">Interactive Visualizations</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="viz-tabs" id="vizTabs">
+    <button class="viz-tab active" onclick="showViz('eda')">📊 EDA</button>
+    <button class="viz-tab" onclick="showViz('baseline')">🤖 Baseline Models</button>
+    <button class="viz-tab" onclick="showViz('tuning')">🎯 Tuning</button>
+    <button class="viz-tab" onclick="showViz('final')">🏆 Final Results</button>
+  </div>
+
+  <!-- EDA Panel -->
+  <div class="viz-panel active" id="viz-eda">
+    <div class="viz-two-col">
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/class_distribution.png" alt="Class Distribution" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: class_distribution.png</div>'" />
+        </div>
+        <p class="viz-caption">// Class Distribution: 30-Day Readmission (91.2% vs 8.8%)</p>
+      </div>
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/missing_values.png" alt="Missing Values" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: missing_values.png</div>'" />
+        </div>
+        <p class="viz-caption">// Percentage of Missing Values per Column</p>
+      </div>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="viz-image-wrap">
+        <img src="images/univariate_analysis.png" alt="Univariate Analysis" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: univariate_analysis.png</div>'" />
+      </div>
+      <p class="viz-caption">// Feature Distributions (time_in_hospital, num_lab_procedures, num_medications, number_diagnoses)</p>
+    </div>
+    <div class="viz-two-col" style="margin-top:20px;">
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/correlation_heatmap.png" alt="Correlation Heatmap" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: correlation_heatmap.png</div>'" />
+        </div>
+        <p class="viz-caption">// Correlation Heatmap of Numerical Features</p>
+      </div>
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/top_ten_diagnosis.png" alt="Top 10 Diagnoses" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: top_ten_diagnosis.png</div>'" />
+        </div>
+        <p class="viz-caption">// Top 10 Primary Diagnoses (diag_1)</p>
+      </div>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="viz-image-wrap">
+        <img src="images/outlier_detection.png" alt="Outlier Detection" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: outlier_detection.png</div>'" />
+      </div>
+      <p class="viz-caption">// Outlier Detection via IQR Boxplots</p>
+    </div>
+  </div>
+
+  <!-- Baseline Models Panel -->
+  <div class="viz-panel" id="viz-baseline">
+    <div class="viz-image-wrap">
+      <img src="images/roc_curves.png" alt="ROC Curves" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: roc_curves.png</div>'" />
+    </div>
+    <p class="viz-caption">// ROC Curves for All 6 Baseline Models — XGBoost leads with AUC 0.6338</p>
+    <div style="margin-top:20px;">
+      <div class="viz-image-wrap">
+        <img src="images/confusion_matrices.png" alt="Confusion Matrices" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: confusion_matrices.png</div>'" />
+      </div>
+      <p class="viz-caption">// Confusion Matrices: Logistic Regression, Decision Tree, Random Forest, Naïve Bayes</p>
+    </div>
+    <div style="margin-top:20px;">
+      <div class="viz-image-wrap">
+        <img src="images/confusion_matrices_knn_xgboost.png" alt="KNN & XGBoost Confusion" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: confusion_matrices_knn_xgboost.png</div>'" />
+      </div>
+      <p class="viz-caption">// Confusion Matrices: KNN vs XGBoost Baseline</p>
+    </div>
+  </div>
+
+  <!-- Tuning Panel -->
+  <div class="viz-panel" id="viz-tuning">
+    <div class="viz-two-col">
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/f1_vs_desc1.png" alt="F1 vs Threshold 1" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: f1_vs_desc1.png</div>'" />
+        </div>
+        <p class="viz-caption">// F1 Score vs Decision Threshold — Optimal @ 0.13</p>
+      </div>
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/f1_vs_desc2.png" alt="F1 vs Threshold 2" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: f1_vs_desc2.png</div>'" />
+        </div>
+        <p class="viz-caption">// F1 Score vs Decision Threshold — Optimal @ 0.64</p>
+      </div>
+    </div>
+    <div class="viz-two-col" style="margin-top:20px;">
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/f1_all_models.png" alt="F1 All Models" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: f1_all_models.png</div>'" />
+        </div>
+        <p class="viz-caption">// F1-Score Comparison Across All Models</p>
+      </div>
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/auc-roc_allmodels.png" alt="AUC-ROC All Models" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: auc-roc_allmodels.png</div>'" />
+        </div>
+        <p class="viz-caption">// AUC-ROC Comparison Across All Models</p>
+      </div>
+    </div>
+    <div class="viz-two-col" style="margin-top:20px;">
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/precision_vs_recall.png" alt="Precision vs Recall" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: precision_vs_recall.png</div>'" />
+        </div>
+        <p class="viz-caption">// Precision vs Recall Trade-Off Across Models</p>
+      </div>
+      <div>
+        <div class="viz-image-wrap">
+          <img src="images/perfomance_metrics.png" alt="Performance Metrics" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: perfomance_metrics.png</div>'" />
+        </div>
+        <p class="viz-caption">// Performance Metrics — Top 5 Models</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final Results Panel -->
+  <div class="viz-panel" id="viz-final">
+    <div class="viz-image-wrap">
+      <img src="images/phase5__test_comparision.png" alt="Phase 5 Test Comparison" loading="lazy" onerror="this.parentElement.innerHTML='<div style=\'padding:60px;color:var(--text2);font-family:Share Tech Mono,monospace;font-size:0.75rem\'>IMAGE: phase5__test_comparision.png</div>'" />
+    </div>
+    <p class="viz-caption">// Final Test Set Comparison — XGBoost (Threshold Tuned) vs Adversarial RF vs Baseline Model</p>
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ===================== TEAM ===================== -->
+<section id="team">
+  <div class="section-header reveal">
+    <span class="section-tag">// Our People</span>
+    <h2 class="section-title">Meet the Team</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="team-grid">
+
+    <!-- Nafeesa Mahek -->
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="g1" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#1a4060"/>
+              <stop offset="100%" stop-color="#020b14"/>
+            </radialGradient>
+          </defs>
+          <circle cx="45" cy="45" r="45" fill="url(#g1)"/>
+          <!-- Face -->
+          <circle cx="45" cy="34" r="14" fill="#f8d5c0"/>
+          <!-- Hair -->
+          <ellipse cx="45" cy="22" rx="14" ry="10" fill="#3b1f0a"/>
+          <ellipse cx="31" cy="30" rx="5" ry="8" fill="#3b1f0a"/>
+          <ellipse cx="59" cy="30" rx="5" ry="8" fill="#3b1f0a"/>
+          <!-- Body -->
+          <ellipse cx="45" cy="68" rx="18" ry="14" fill="#0d2d4a"/>
+          <!-- Lab coat accent -->
+          <path d="M33 60 Q45 55 57 60 L57 75 Q45 78 33 75 Z" fill="#1e4a6e" opacity="0.6"/>
+          <!-- Neon accent -->
+          <circle cx="45" cy="45" r="44" fill="none" stroke="#00f5ff" stroke-width="1" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="team-name">Nafeesa Mahek</div>
+      <div class="team-role">3rd Year CS Student</div>
+      <p class="team-bio">Hi, I'm Nafeesa Mahek! I'm a 3rd year CS student at Effat University. My passion lies in applying machine learning to healthcare data — I'm fascinated by how models can uncover hidden patterns in messy clinical records and turn them into life-saving insights.</p>
+      <a href="https://nafeesa-mahek.github.io/" target="_blank" class="btn btn-cyan" style="width:100%;justify-content:center;">→ Check Out My Profile</a>
+    </div>
+
+    <!-- Najeyah Waseem -->
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="g2" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#2d0d3a"/>
+              <stop offset="100%" stop-color="#020b14"/>
+            </radialGradient>
+          </defs>
+          <circle cx="45" cy="45" r="45" fill="url(#g2)"/>
+          <circle cx="45" cy="34" r="14" fill="#f0c8a0"/>
+          <ellipse cx="45" cy="21" rx="15" ry="9" fill="#1a0a00"/>
+          <path d="M31 26 Q38 16 52 18 Q60 22 59 30" fill="#1a0a00"/>
+          <ellipse cx="45" cy="68" rx="18" ry="14" fill="#3d0d4a"/>
+          <path d="M33 60 Q45 55 57 60 L57 75 Q45 78 33 75 Z" fill="#5a1a6e" opacity="0.6"/>
+          <circle cx="45" cy="45" r="44" fill="none" stroke="#ff2d7e" stroke-width="1" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="team-name">Najeyah Waseem</div>
+      <div class="team-role">3rd Year CS Student</div>
+      <p class="team-bio">Hi, I'm Najeyah Waseem! A 3rd year CS student at Effat University with a deep interest in data science and predictive analytics. I love diving into imbalanced datasets and finding smart ways to make models work for the minority class — where it matters most.</p>
+      <a href="#" class="btn btn-cyan" style="width:100%;justify-content:center;opacity:0.5;cursor:default;">→ Profile Coming Soon</a>
+    </div>
+
+    <!-- Sarah Alsebae -->
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="g3" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#0d2d1a"/>
+              <stop offset="100%" stop-color="#020b14"/>
+            </radialGradient>
+          </defs>
+          <circle cx="45" cy="45" r="45" fill="url(#g3)"/>
+          <circle cx="45" cy="34" r="14" fill="#f5d5b0"/>
+          <ellipse cx="45" cy="22" rx="13" ry="9" fill="#2c1000"/>
+          <path d="M32 28 Q45 18 58 28" fill="#2c1000"/>
+          <path d="M45 26 Q52 24 58 28 L58 36 Q50 32 45 34 Q40 32 32 36 L32 28 Q38 24 45 26Z" fill="#2c1000"/>
+          <ellipse cx="45" cy="68" rx="18" ry="14" fill="#0d3a1f"/>
+          <path d="M33 60 Q45 55 57 60 L57 75 Q45 78 33 75 Z" fill="#1a5a30" opacity="0.6"/>
+          <circle cx="45" cy="45" r="44" fill="none" stroke="#00ff9d" stroke-width="1" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="team-name">Sarah Alsebae</div>
+      <div class="team-role">4th Year CS Student</div>
+      <p class="team-bio">Hi, I'm Sarah Alsebae! A 4th year CS student at Effat University. I'm passionate about the intersection of artificial intelligence and clinical decision-making. I believe that thoughtful, interpretable ML systems can genuinely transform how we approach patient care and hospital management.</p>
+      <a href="#" class="btn btn-cyan" style="width:100%;justify-content:center;opacity:0.5;cursor:default;">→ Profile Coming Soon</a>
+    </div>
+
+    <!-- Sara Imran -->
+    <div class="team-card reveal">
+      <div class="team-avatar">
+        <svg viewBox="0 0 90 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="g4" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#2a1500"/>
+              <stop offset="100%" stop-color="#020b14"/>
+            </radialGradient>
+          </defs>
+          <circle cx="45" cy="45" r="45" fill="url(#g4)"/>
+          <circle cx="45" cy="34" r="14" fill="#f8c8a0"/>
+          <ellipse cx="45" cy="21" rx="14" ry="10" fill="#0a0500"/>
+          <path d="M31 28 L31 40 Q34 38 33 30 Z" fill="#0a0500"/>
+          <path d="M59 28 L59 40 Q56 38 57 30 Z" fill="#0a0500"/>
+          <ellipse cx="45" cy="68" rx="18" ry="14" fill="#2a1a00"/>
+          <path d="M33 60 Q45 55 57 60 L57 75 Q45 78 33 75 Z" fill="#4a3000" opacity="0.6"/>
+          <circle cx="45" cy="45" r="44" fill="none" stroke="#ffd700" stroke-width="1" opacity="0.3"/>
+        </svg>
+      </div>
+      <div class="team-name">Sara Imran</div>
+      <div class="team-role">4th Year CS Student</div>
+      <p class="team-bio">Hi, I'm Sara Imran! A 4th year CS student at Effat University. My interests center on feature engineering and model evaluation in real-world healthcare settings. I enjoy the challenge of building pipelines that are not just accurate, but honest, fair, and clinically meaningful.</p>
+      <a href="#" class="btn btn-cyan" style="width:100%;justify-content:center;opacity:0.5;cursor:default;">→ Profile Coming Soon</a>
+    </div>
+
+  </div>
+</section>
+
+<div class="full-divider"></div>
+
+<!-- ===================== PROJECT LINKS ===================== -->
+<section id="links">
+  <div class="section-header reveal">
+    <span class="section-tag">// Resources</span>
+    <h2 class="section-title">Project Links</h2>
+    <div class="section-divider"></div>
+  </div>
+
+  <div class="links-grid">
+    <a href="https://github.com/najeyahwaseem05/CS4082_Machine_Learning_Project.git" target="_blank" class="link-card github reveal">
+      <div class="link-card-icon">⌥</div>
+      <div class="link-card-title">GitHub Repository</div>
+      <div class="link-card-sub">Full source code, notebooks &amp; pipeline</div>
+      <div class="btn btn-green" style="margin-top:8px;pointer-events:none;">Open Repository</div>
+    </a>
+
+    <div class="link-card report reveal" onclick="alert('Add your technical report PDF link here!')">
+      <div class="link-card-icon">📄</div>
+      <div class="link-card-title">Technical Report</div>
+      <div class="link-card-sub">Full IEEE-format research paper (PDF)</div>
+      <div class="btn btn-cyan" style="margin-top:8px;pointer-events:none;">View Report</div>
+    </div>
+
+    <div class="link-card slides reveal" onclick="alert('Add your presentation slides link here!')">
+      <div class="link-card-icon">🎞</div>
+      <div class="link-card-title">Presentation Slides</div>
+      <div class="link-card-sub">Project slides &amp; visual summary</div>
+      <div class="btn btn-purple" style="margin-top:8px;pointer-events:none;">View Slides</div>
+    </div>
+
+    <div class="link-card demo reveal" onclick="alert('Add your demo video link here!')">
+      <div class="link-card-icon">▶</div>
+      <div class="link-card-title">Demo Video</div>
+      <div class="link-card-sub">Walkthrough of the ML pipeline</div>
+      <div class="btn btn-pink" style="margin-top:8px;pointer-events:none;">Watch Demo</div>
+    </div>
+  </div>
+
+  <p style="text-align:center;margin-top:32px;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--text2);letter-spacing:1.5px;">
+    // DATASET: <a href="https://archive.ics.uci.edu/dataset/296/diabetes+130-us+hospitals+for+years+1999-2008" target="_blank" style="color:var(--cyan);text-decoration:none;">UCI Diabetes 130-US Hospitals (1999–2008)</a>
+  </p>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <p>© 2025 <span>DiabetesMed AI</span> — Effat University, Jeddah, Saudi Arabia</p>
+  <p style="margin-top:6px;">Sarah Alsebae · Najeyah Waseem · Nafeesa Mahek · Sara Imran</p>
+  <p style="margin-top:6px;opacity:0.5;">Department of Computer Science · CS4082 Machine Learning Project</p>
+</footer>
+
+<!-- ===================== SCRIPTS ===================== -->
+<script>
+/* ---- Particles ---- */
+(function(){
+  const container = document.getElementById('particles');
+  const colors = ['#00f5ff','#ff2d7e','#00ff9d','#9b59ff','#ffd700'];
+  for(let i=0;i<60;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*3+1;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      top:${80+Math.random()*20}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${8+Math.random()*15}s;
+      animation-delay:${Math.random()*8}s;
+      box-shadow:0 0 4px currentColor;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+/* ---- Scroll Reveal ---- */
+(function(){
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  },{threshold:0.12});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+})();
+
+/* ---- Viz Tabs ---- */
+function showViz(id){
+  document.querySelectorAll('.viz-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.viz-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('viz-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+/* ---- Model Metric Explorer ---- */
+const modelData = {
+  lr:  { name:'Logistic Regression', acc:0.74, recall:0.61, f1:0.32, auc:0.72, color:'var(--cyan)'  },
+  dt:  { name:'Decision Tree',       acc:0.82, recall:0.35, f1:0.29, auc:0.64, color:'var(--purple)'},
+  nb:  { name:'Naïve Bayes',         acc:0.48, recall:0.87, f1:0.25, auc:0.68, color:'var(--pink)'  },
+  knn: { name:'K-Nearest Neighbors', acc:0.87, recall:0.22, f1:0.26, auc:0.65, color:'#f5a623'      },
+  rf:  { name:'Random Forest',       acc:0.90, recall:0.18, f1:0.26, auc:0.73, color:'#f5a623'      },
+  xgb: { name:'XGBoost ⭐',          acc:0.78, recall:0.58, f1:0.36, auc:0.74, color:'var(--green)' },
+};
+
+function showModel(key){
+  document.querySelectorAll('.model-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  const d = modelData[key];
+  const metrics = [
+    { label:'Accuracy',        val: d.acc  },
+    { label:'Recall (Min)',    val: d.recall},
+    { label:'F1-Score (Min)',  val: d.f1   },
+    { label:'AUC-ROC',        val: d.auc  },
+  ];
+  const bars = document.getElementById('metricBars');
+  bars.innerHTML = metrics.map(m=>`
+    <div class="metric-row">
+      <div class="metric-row-header">
+        <span class="metric-name">${m.label}</span>
+        <span class="metric-value">${m.val.toFixed(2)}</span>
+      </div>
+      <div class="metric-track">
+        <div class="metric-fill" style="width:0%;background:${d.color}" data-target="${m.val*100}"></div>
+      </div>
+    </div>
+  `).join('');
+  // Animate bars
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      bars.querySelectorAll('.metric-fill').forEach(el=>{
+        el.style.width = el.dataset.target + '%';
+      });
+    });
+  });
+}
+
+// Init explorer
+showModel('lr');
+document.querySelector('.model-btn').classList.add('active');
+</script>
+</body>
+</html>
